@@ -89,6 +89,38 @@ client = ClobClient(
 client.set_api_creds(client.create_or_derive_api_creds())
 ```
 
+### Using HTTP/HTTPS Proxies
+
+The ClobClient supports HTTP/HTTPS proxies for all API requests. This is useful when you need to route traffic through a proxy server:
+
+```python
+from py_clob_client.client import ClobClient
+
+HOST = "https://clob.polymarket.com"
+CHAIN_ID = 137
+PRIVATE_KEY = "<your-private-key>"
+
+# Configure proxy
+proxy_config = {
+    "http://": "http://user:password@proxy.example.com:8080",
+    "https://": "http://user:password@proxy.example.com:8080"
+}
+
+# Initialize client with proxy
+client = ClobClient(
+    HOST,
+    key=PRIVATE_KEY,
+    chain_id=CHAIN_ID,
+    proxies=proxy_config  # Optional proxy configuration
+)
+client.set_api_creds(client.create_or_derive_api_creds())
+
+# All API calls will now use the configured proxy
+markets = client.get_simplified_markets()
+```
+
+**Note**: The `proxies` parameter is optional. If not provided, direct connections will be used. The proxy configuration follows the [httpx proxy format](https://www.python-httpx.org/advanced/#http-proxying).
+
 ### Find markets, prices, and orderbooks
 
 ```python

@@ -34,51 +34,62 @@ def overloadHeaders(method: str, headers: dict) -> dict:
     return headers
 
 
-def request(endpoint: str, method: str, headers=None, data=None):
+def request(endpoint: str, method: str, headers=None, data=None, proxies=None):
     try:
         headers = overloadHeaders(method, headers)
-        if isinstance(data, str):
-            # Pre-serialized body: send exact bytes
-            resp = _http_client.request(
-                method=method,
-                url=endpoint,
-                headers=headers,
-                content=data.encode("utf-8"),
-            )
-        else:
-            resp = _http_client.request(
-                method=method,
-                url=endpoint,
-                headers=headers,
-                json=data,
-            )
-
-        if resp.status_code != 200:
-            raise PolyApiException(resp)
-
+        
+        # Use a proxy-enabled client if proxies are provided
+        client = _http_client
+        if proxies:
+            client = httpx.Client(http2=True, proxies=proxies)
+        
         try:
-            return resp.json()
-        except ValueError:
-            return resp.text
+            if isinstance(data, str):
+                # Pre-serialized body: send exact bytes
+                resp = client.request(
+                    method=method,
+                    url=endpoint,
+                    headers=headers,
+                    content=data.encode("utf-8"),
+                )
+            else:
+                resp = client.request(
+                    method=method,
+                    url=endpoint,
+                    headers=headers,
+                    json=data,
+                )
+
+            if resp.status_code != 200:
+                raise PolyApiException(resp)
+
+            try:
+                return resp.json()
+            except ValueError:
+                return resp.text
+        finally:
+            # Close the proxy client if we created one
+            if proxies and client != _http_client:
+                client.close()
 
     except httpx.RequestError:
         raise PolyApiException(error_msg="Request exception!")
 
 
-def post(endpoint, headers=None, data=None):
-    return request(endpoint, POST, headers, data)
+def post(endpoint, headers=None, data=None, proxies=None):
+    return request(endpoint, POST, headers, data, proxies)
 
 
-def get(endpoint, headers=None, data=None):
-    return request(endpoint, GET, headers, data)
+def get(endpoint, headers=None, data=None, proxies=None):
+    return request(endpoint, GET, headers, data, proxies)
 
 
-def delete(endpoint, headers=None, data=None):
-    return request(endpoint, DELETE, headers, data)
+def delete(endpoint, headers=None, data=None, proxies=None):
+    return request(endpoint, DELETE, headers, data, proxies)
 
 
-def put(endpoint, headers=None, data=None):
-    return request(endpoint, PUT, headers, data)
+def put(endpoint, headers=None, data=None, proxies=None):
+    return request(endpoint, PUT, headers, data, proxies)
 
 
 def build_query_params(url: str, param: str, val: str) -> str:
