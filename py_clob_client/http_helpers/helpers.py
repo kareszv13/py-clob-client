@@ -38,10 +38,17 @@ def request(endpoint: str, method: str, headers=None, data=None, proxies=None):
     try:
         headers = overloadHeaders(method, headers)
         
-        # Use a proxy-enabled client if proxies are provided
         client = _http_client
         if proxies:
-            client = httpx.Client(http2=True, proxies=proxies)
+            # Convert dict to single proxy URL (use https if available)
+            proxy_url = None
+            if isinstance(proxies, dict):
+                proxy_url = proxies.get("https") or proxies.get("http")
+            else:
+                proxy_url = proxies
+            
+            if proxy_url:
+                client = httpx.Client(http2=True, proxy=proxy_url)
         
         try:
             if isinstance(data, str):
